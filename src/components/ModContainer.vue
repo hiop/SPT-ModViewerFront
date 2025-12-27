@@ -5,8 +5,9 @@ import {getSptMods, postActiveProfile, postServerMod} from "@/api/api-client.ts"
 import type {SPTClientMod, SPTServerMod} from "@/api/api-types.ts";
 import SptMod from "@/components/SptMod.vue";
 import {useGlobalStore, useSptFilterStore, useSptModStore} from "@/store";
-import {SptModState, SptModType} from "@/types/spt-types.ts";
-import {getModState, sleep} from "@/script/Utils.ts";
+import {SptModState} from "@/types/spt-types.ts";
+import {getKeyByValue, getModState, sleep} from "@/script/Utils.ts";
+import {ModType} from "@/api/api-types.ts";
 
 const loading = ref(false);
 const globalStore = useGlobalStore();
@@ -32,17 +33,27 @@ const clientMods = computed((): SPTClientMod[] => {
   const _search = modFilter?.value.search ?? '';
 
   return _mods
-      .filter((m: SPTClientMod) => modFilter.value.availableMods.includes(SptModType.CLIENT))
+      .filter((m: SPTClientMod) => modFilter.value.availableMods.includes(getKeyByValue(ModType, ModType.CLIENT)))
       .filter((m: SPTClientMod) => m.visible !== false)
       .filter((m: SPTClientMod) => JSON.stringify(m).toLowerCase().includes(_search.toLowerCase()))
       .filter((m: SPTClientMod) => {
-        const forgeMode = mods.value!.sptForgeMods!.find(f => f.guid === m.guid);
+        const forgeMode = mods.value!.sptForgeMods!.find(f => {
+          const guid = m?.forceGuid ?? m?.guid
+          return f.guid === guid
+        });
+
         if (modFilter.value?.modState === SptModState.ANY) return true;
 
         const lastVersion = forgeMode?.sptVersions[forgeMode.sptVersions?.length - 1];
         return modFilter?.value.modState === getModState(m, lastVersion);
       })
 })
+
+const getAllMods = async() => {
+  return getSptMods().then((response) => {
+    modStore.setMods(response);
+  })
+}
 
 onMounted(async () => {
   try {
@@ -52,9 +63,7 @@ onMounted(async () => {
     globalStore.setMessage(e?.message)
   }
 
-  await getSptMods().then((response) => {
-    modStore.setMods(response);
-  })
+  await getAllMods();
 })
 
 const serverMods = computed(() => {
@@ -62,11 +71,15 @@ const serverMods = computed(() => {
   const _search = modFilter?.value.search ?? '';
 
   return _mods
-      .filter((m: SPTServerMod) => modFilter.value.availableMods.includes(SptModType.SERVER))
+      .filter((m: SPTServerMod) => modFilter.value.availableMods.includes(getKeyByValue(ModType, ModType.SERVER)))
       .filter((m: SPTServerMod) => m.visible !== false)
       .filter((m: SPTServerMod) => JSON.stringify(m).toLowerCase().includes(_search.toLowerCase()))
       .filter((m: SPTServerMod) => {
-        const forgeMode = mods.value!.sptForgeMods!.find(f => f.guid === m.guid);
+        const forgeMode = mods.value!.sptForgeMods!.find(f => {
+          const guid = m?.forceGuid ?? m?.guid
+          return f.guid === guid
+        });
+
         if (modFilter.value?.modState === SptModState.ANY) return true;
 
         const lastVersion = forgeMode?.sptVersions[forgeMode.sptVersions?.length - 1];
@@ -115,7 +128,7 @@ const SyncAllModsByFilter = async () => {
       <div>
         <v-select
             v-model="modFilter.availableMods"
-            :items="Object.values(SptModType)"
+            :items="Object.keys(ModType)"
             width="300"
             label="Mod types"
             variant="outlined"
@@ -126,7 +139,7 @@ const SyncAllModsByFilter = async () => {
       </div>
       <div>
         <v-select
-            v-if="modFilter.availableMods.includes(SptModType.CLIENT)"
+            v-if="modFilter.availableMods.includes(getKeyByValue(ModType, ModType.CLIENT))"
             v-model="modFilter.activeProfile"
             class="ml-2"
             :items="Object.keys(mods?.sptClientMods ?? {})"
@@ -174,9 +187,7 @@ const SyncAllModsByFilter = async () => {
       </div>
       <div>
         <v-btn
-            v-tooltip:bottom="`Updates data for mods (via forge api) selected using the filter settings. The number of mods that will be processed is indicated in brackets.
-            !!!THIS IS NOT MOD UPDATER!!!
-            `"
+            v-tooltip:bottom="`Updates data for mods (via forge api) selected using the filter settings. The number of mods that will be processed is indicated in brackets.`"
             :loading="loading"
             class="ml-4"
             height="40"
@@ -193,16 +204,18 @@ const SyncAllModsByFilter = async () => {
           v-for="mod in serverMods"
           :server-mod="mod"
           :forge-mods="mods?.sptForgeMods"
-          :key="mod.guid"
+          :key="JSON.stringify(mod)"
           style="width: 20%"
+          @mod-changed="getAllMods"
       />
 
       <template v-if="modFilter.activeProfile">
         <SptMod
             v-for="cmod in clientMods"
-            :key="cmod.guid"
+            :key="JSON.stringify(cmod)"
             :client-mod="cmod"
             :forge-mods="mods!.sptForgeMods"
+            @mod-changed="getAllMods"
             style="width: 20%"
         />
       </template>

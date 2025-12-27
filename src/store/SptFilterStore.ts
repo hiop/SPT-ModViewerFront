@@ -1,7 +1,8 @@
 import {defineStore} from 'pinia';
 import {ref} from 'vue';
 import type {SptModFilter} from "@/types/spt-types.ts";
-import {SptModState, SptModType} from "@/types/spt-types.ts";
+import {SptModState} from "@/types/spt-types.ts";
+import {ModType} from "@/api/api-types.ts";
 
 /** Spt Filter Store */
 export default defineStore(
@@ -9,7 +10,7 @@ export default defineStore(
     () => {
         const sptVersion = ref('4.0.9');
         const modFilter = ref<SptModFilter>({
-            availableMods: [SptModType.CLIENT, SptModType.SERVER],
+            availableMods: [ModType.CLIENT, ModType.SERVER],
             modState: SptModState.ANY
         });
 

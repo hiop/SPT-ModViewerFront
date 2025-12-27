@@ -9,8 +9,10 @@ export interface ApiResponse<T> {
 
 export interface SPTClientMod {
   guid?: string;
+  forceGuid?: string;
   name?: string;
   modVersion?: string;
+  forceModVersion?: ForceModVersion;
   visible?: boolean;
 }
 
@@ -38,9 +40,11 @@ export interface ForgeModUpdate {
 
 export interface SPTServerMod {
   guid?: string;
+  forceGuid?: string;
   name?: string;
   author?: string;
   modVersion?: string;
+  forceModVersion?: ForceModVersion;
   sptVersion?: string;
   visible?: boolean;
 }
@@ -58,4 +62,30 @@ export interface HideClientMod {
 
 export interface HideServerMod {
   guid?: string;
+}
+
+export interface ForceModVersion {
+  modVersion: number;
+  forceVersion: number;
+}
+
+export const ModType = {
+  SERVER: 0,
+  CLIENT: 1,
+} as const;
+export type SptModType = typeof ModType[keyof typeof ModType];
+
+export interface ForceModVersionRequest {
+  modType: SptModType;
+  clientName?: string;
+  guid?: string;
+  modVersion?: number;
+  forceVersion?: number;
+}
+
+export interface ForceModGuidRequest {
+  modType: ModType;
+  clientName?: string;
+  guid?: string;
+  forceGuid?: string;
 }

@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import type {HideClientMod, SPTClientMod, SPTForgeMod, SPTServerMod} from "@/api/api-types.ts";
+import type {HideClientMod, SPTClientMod, SPTForgeMod, SptModType, SPTServerMod} from "@/api/api-types.ts";
+import {ModType} from "@/api/api-types.ts";
 import {computed, ref} from "vue";
-import { useSptFilterStore, useSptModStore} from "@/store";
+import {useSptFilterStore, useSptModStore} from "@/store";
 import defaultBg from "@/assets/default_bg.svg";
 import {hideProfileMod, hideServerMod} from "@/api/api-client.ts";
 import {SptModState} from "@/types/spt-types.ts";
+import {getKeyByValue, getModState} from "@/script/Utils.ts";
 
 interface Props {
   clientMod?: SPTClientMod
@@ -14,11 +16,14 @@ interface Props {
 
 const sptFilterStore = useSptFilterStore();
 const sptModStore = useSptModStore();
+const emits = defineEmits(['modChanged']);
 
 const loading = ref(false);
 const props = defineProps<Props>();
 const clientMod = props.clientMod;
 const serverMod = props.serverMod;
+const editGuidDialog = ref(false);
+const forceGuidValue = ref('');
 
 const filter = computed(() =>{
   return sptFilterStore.getModFilter();
@@ -29,7 +34,11 @@ const forgeMods = computed(() =>{
 });
 
 const modIs = computed((): 'SERVER' | 'CLIENT' => {
-  return clientMod?.guid ? 'CLIENT' : 'SERVER'
+  return clientMod?.guid ? getKeyByValue(ModType, ModType.CLIENT) : getKeyByValue(ModType, ModType.SERVER)
+})
+
+const isModType = computed((): SptModType => {
+  return clientMod?.guid ? ModType.CLIENT : ModType.SERVER
 })
 
 const modName = computed(() => {
@@ -45,11 +54,19 @@ const shortModName = computed(() => {
 })
 
 const modVersion = computed(() => {
+  const mod = clientMod?.modVersion ? clientMod : serverMod;
+
+  if(mod?.modVersion === mod.forceModVersion?.modVersion){
+    return mod.forceModVersion?.forceVersion;
+  }
+
   return clientMod?.modVersion ?? serverMod?.modVersion
 })
 
 const modGuid = computed(() => {
-  return clientMod?.guid ?? serverMod?.guid
+  const mod =  clientMod ?? serverMod;
+
+  return mod?.forceGuid ?? mod?.guid ?? null;
 })
 
 const forgeMod = computed(() => {
@@ -68,6 +85,39 @@ const updateMod = () => {
       .finally(() => {
         loading.value = false;
   });
+}
+
+const setModGuid = () => {
+  loading.value = true;
+
+  sptModStore.setModGuid(
+      isModType.value,
+      isModType.value === ModType.CLIENT ? clientMod : serverMod,
+      forceGuidValue.value
+  )
+      .then(() => {
+        editGuidDialog.value = false;
+        emits('modChanged');
+      })
+      .finally(() => {
+        loading.value = false;
+      })
+}
+
+const setUseLastModVersion = () => {
+  loading.value = true;
+
+  sptModStore.useLastModVersion(
+      isModType.value,
+      forgeModLastVersion.value,
+      isModType.value === ModType.CLIENT ? clientMod : serverMod
+  )
+      .then(() => {
+        emits('modChanged');
+      })
+      .finally(() => {
+        loading.value = false;
+      })
 }
 
 const hideMod = () =>{
@@ -96,13 +146,20 @@ const hideMod = () =>{
 
 }
 
+const modState = computed(() => {
+  return getModState(clientMod?.guid ? clientMod : serverMod, forgeModLastVersion.value);
+});
+
 const modStateColor = computed(() => {
-  if (forgeModLastVersion.value?.version) {
-    return forgeModLastVersion.value?.version === modVersion.value
-        ? 'green'
-        : 'red';
+  switch (modState.value) {
+    case SptModState.UPDATED:
+      return 'green';
+    case SptModState.OUTDATED:
+      return 'red';
+    case SptModState.UNDEFINED:
+    default:
+      return 'grey';
   }
-  return 'grey';
 });
 
 </script>
@@ -142,29 +199,88 @@ const modStateColor = computed(() => {
                 :loading="loading"
             >
               <v-icon icon="mdi-dots-vertical"/>
-              <v-menu activator="parent" :close-on-click="false" :close-on-back="false" >
+              <v-menu activator="parent">
                 <v-list>
-                  <v-list-item value="sync">
+                  <v-list-item class="mt-2" value="sync" @click="updateMod()" >
                     <template #prepend>
                       <v-icon color="success" icon="mdi-update"/>
                     </template>
-                    <v-list-item-title @click="updateMod()">Sync data from Forge API</v-list-item-title>
+                    <v-list-item-title >Sync data from Forge API</v-list-item-title>
                   </v-list-item>
 
-                  <v-list-item value="hide">
+                  <v-list-item
+                      v-tooltip:bottom="`When sync data, a mod may not be found on the Forge website. This happens because the mod file contains an incorrect GUID. You can change this!`"
+                      value="set-guid"
+                      @click="editGuidDialog = !editGuidDialog"
+                  >
+                    <template #prepend>
+                      <v-icon color="success" icon="mdi-identifier"/>
+                    </template>
+                    <v-list-item-title>
+                      <v-list-item-title>Change GUID</v-list-item-title>
+                    </v-list-item-title>
+                  </v-list-item>
+
+                  <v-divider class="mt-2 mb-2"/>
+
+                  <v-list-item class="mt-2"  value="hide" @click="hideMod()">
                     <template #prepend>
                       <v-icon color="warning"  icon="mdi-eye-remove"/>
                     </template>
                     <v-list-item-title>
-                      <v-list-item-title @click="hideMod()">Hide</v-list-item-title>
+                      <v-list-item-title >Hide</v-list-item-title>
                     </v-list-item-title>
                   </v-list-item>
+
+                  <v-list-item
+                      v-if="modState === SptModState.OUTDATED"
+                      v-tooltip:bottom="`Click the button if you are update/use latest version of mod. The mod version and the version on the Forge website may differ. Sometimes the developer makes changes to the mod but doesn't change the version number.`"
+                      value="use-last"
+                      @click="setUseLastModVersion()">
+                    <template #prepend>
+                      <v-icon color="warning"  icon="mdi-equal"/>
+                    </template>
+                    <v-list-item-title>
+                      <v-list-item-title>I have {{forgeModLastVersion?.version}} version!</v-list-item-title>
+                    </v-list-item-title>
+                  </v-list-item>
+
                 </v-list>
               </v-menu>
             </v-btn>
           </div>
 
         </div>
+
+        <v-dialog v-model="editGuidDialog" width="500px">
+
+          <template v-slot:default="{ isActive }">
+            <v-card :title="`Change GUID for ${modName}`">
+              <v-card-text>
+                <ol class="ml-5 mb-2">
+                  <li>Go to <a href="https://forge.sp-tarkov.com/mods" target="_blank">https://forge.sp-tarkov.com/mods</a>
+                    and find right mod.
+                  </li>
+                  <li>Copy "GUID" value from side panel "Details" and paste it to text field below</li>
+                </ol>
+                <v-text-field v-model="forceGuidValue"
+                              variant="outlined"
+                              density="compact"
+                              placeholder="example: mod.some.guid"/>
+                <v-btn :loading="loading" color="success" :disabled="forceGuidValue.length <= 0" @click="setModGuid">Change</v-btn>
+              </v-card-text>
+
+              <v-card-actions>
+                <v-spacer></v-spacer>
+
+                <v-btn
+                    text="Close"
+                    @click="isActive.value = false"
+                ></v-btn>
+              </v-card-actions>
+            </v-card>
+          </template>
+        </v-dialog>
       </v-card-title>
 
       <v-card-subtitle>
@@ -172,11 +288,8 @@ const modStateColor = computed(() => {
       </v-card-subtitle>
 
       <v-card-actions>
-<!--        <v-chip v-if="forgeModLastVersion" class="font-weight-bold" color="grey" variant="flat">-->
-<!--          SPT {{ forgeModLastVersion?.spt_version_constraint }}-->
-<!--        </v-chip>-->
         <v-chip :color="modStateColor" variant="flat" density="compact">{{ modIs }}</v-chip>
-        <v-chip v-if="filter?.modState === SptModState.OUTDATED" color="green" variant="flat" density="compact">
+        <v-chip v-if="modState === SptModState.OUTDATED" color="green" variant="flat" density="compact">
           {{forgeModLastVersion?.version}}
         </v-chip>
       </v-card-actions>

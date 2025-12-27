@@ -2,7 +2,7 @@
 // Do not edit manually - regenerate using: spt-bridgeui-typegen
 
 import type {
-  ApiResponse,
+  ApiResponse, ForceModGuidRequest, ForceModVersionRequest,
   ForgeModUpdate, HideClientMod, HideServerMod, SPTForgeMod, SptModResponse,
 } from './api-types';
 
@@ -83,6 +83,39 @@ export async function hideProfileMod(request: HideClientMod): Promise<ApiRespons
  */
 export async function hideServerMod(request: HideServerMod): Promise<ApiResponse<{success: boolean}>> {
   const response = await fetch('/smv/api/mod/server/hide', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * Set version with force
+ * POST /smv/api/mod/force-version
+ */
+export async function setModVersionWithForce(request: ForceModVersionRequest): Promise<ApiResponse<{success: boolean}>> {
+  const response = await fetch('/smv/api/mod/force-version', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * Set guid of mod with force
+ * POST /smv/api/mod/force-guid
+ */
+export async function setModGuidWithForce(request: ForceModGuidRequest): Promise<ApiResponse<{success: boolean}>> {
+  console.log("request",request)
+  const response = await fetch('/smv/api/mod/force-guid', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),

@@ -1,13 +1,10 @@
+import type {SptModType} from "@/api/api-types.ts";
+
 export enum SptModState {
     ANY = 'ANY',
     UPDATED = 'UPDATED',
     OUTDATED = 'OUTDATED',
     UNDEFINED = 'UNDEFINED'
-}
-
-export enum SptModType {
-    CLIENT = 'CLIENT',
-    SERVER = 'SERVER',
 }
 
 export interface SptModFilter {

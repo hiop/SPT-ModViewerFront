@@ -1,20 +1,50 @@
 import {defineStore} from 'pinia';
-import {ref} from 'vue';
-import type {ApiResponse, SPTClientMod, SPTForgeMod, SptModResponse, SPTServerMod} from "@/api/api-types.ts";
-import {updateModByForge} from "@/api/api-client.ts";
-import {useGlobalStore} from "@/store/index.ts";
+import { ref} from 'vue';
+import type {
+    ApiResponse,
+    ForceModGuidRequest,
+    ForceModVersionRequest,
+    ModType,
+    SPTClientMod,
+    SPTForgeModVersion,
+    SptModResponse,
+    SPTServerMod
+} from "@/api/api-types.ts";
+import {setModGuidWithForce, setModVersionWithForce, updateModByForge} from "@/api/api-client.ts";
+import {useGlobalStore, useSptFilterStore} from "@/store/index.ts";
 
 
 /** Spt Mod Store */
 export default defineStore('spt-mod', () => {
-        const mods = ref<SptModResponse>();
+        const mods = ref<SptModResponse>({} as SptModResponse);
         const globalStore = useGlobalStore();
+        const filterStore = useSptFilterStore();
 
         const getMods = () =>{
             return mods.value
         }
+
         const setMods = (response: ApiResponse<SptModResponse>) =>{
-            mods.value = response?.data;
+            mods.value = response?.data
+        }
+
+    const setModGuid = async (modType: ModType, mod?: SPTServerMod | SPTClientMod, forceGuid: string) => {
+       return setModGuidWithForce({
+            modType: modType,
+            guid: mod?.guid,
+            forceGuid: forceGuid,
+            clientName: filterStore.modFilter.activeProfile,
+        } as ForceModGuidRequest);
+    }
+
+        const useLastModVersion = async (modType: ModType, lastVersion: SPTForgeModVersion, mod?: SPTServerMod | SPTClientMod) => {
+            return setModVersionWithForce({
+                    modType: modType,
+                    modVersion: mod?.modVersion,
+                    forceVersion: lastVersion.version,
+                    guid: mod?.guid,
+                    clientName: filterStore.modFilter.activeProfile,
+                } as ForceModVersionRequest);
         }
 
         const hideClientMod = (clientName?: string, clientMod?: SPTClientMod) => {
@@ -38,7 +68,7 @@ export default defineStore('spt-mod', () => {
         const updateForgeMod = async (mod?: SPTServerMod | SPTClientMod) =>{
             if(!mod) return
 
-            return updateModByForge({name: mod.name, guid: mod.guid})
+            return updateModByForge({name: mod.name, guid: mod.forceGuid ?? mod.guid})
                 .then((result) => {
                     if (result?.success === false && result?.message) {
                         globalStore.setMessage(result?.message+ ` | mod=${mod?.name ?? mod.guid}`)
@@ -56,6 +86,6 @@ export default defineStore('spt-mod', () => {
                 })
         }
 
-        return {mods,getMods, setMods, updateForgeMod, hideServerMod, hideClientMod}
+        return {mods,getMods, setMods, updateForgeMod, hideServerMod, hideClientMod, useLastModVersion, setModGuid}
     }
 );
