@@ -97,7 +97,7 @@ const SyncAllModsByFilter = async () => {
 
   for (let s = 0; s < serverMods.value.length; s++) {
     const mod = serverMods.value[s];
-    globalStore.setMessage(`Try sync mod ${mod.name}`)
+    globalStore.setMessage(`Try sync mod ${mod.name} (${counter})`)
 
     await modStore.updateForgeMod(mod).finally(() => {
       counter--;
@@ -107,7 +107,7 @@ const SyncAllModsByFilter = async () => {
 
   for (let c = 0; c < clientMods.value.length; c++) {
     const mod = clientMods.value[c];
-    globalStore.setMessage(`Try sync mod ${mod.name}`)
+    globalStore.setMessage(`Try sync mod ${mod.name} (${counter})`)
 
     await modStore.updateForgeMod(mod).finally(() => {
       counter--;
@@ -128,6 +128,8 @@ const SyncAllModsByFilter = async () => {
       <div>
         <v-select
             v-model="modFilter.availableMods"
+            :loading="loading"
+            :disabled="loading"
             :items="Object.keys(ModType)"
             width="300"
             label="Mod types"
@@ -141,8 +143,10 @@ const SyncAllModsByFilter = async () => {
         <v-select
             v-if="modFilter.availableMods.includes(getKeyByValue(ModType, ModType.CLIENT))"
             v-model="modFilter.activeProfile"
-            class="ml-2"
             :items="Object.keys(mods?.sptClientMods ?? {})"
+            :loading="loading"
+            :disabled="loading"
+            class="ml-2"
             width="300"
             label="Player profile"
             variant="outlined"
@@ -155,6 +159,8 @@ const SyncAllModsByFilter = async () => {
         <v-select
             v-model="modFilter.modState"
             :items="Object.values(SptModState)"
+            :loading="loading"
+            :disabled="loading"
             class="ml-2"
             width="300"
             variant="outlined"
@@ -167,6 +173,8 @@ const SyncAllModsByFilter = async () => {
       <div>
         <v-text-field
             v-model="modFilter.search"
+            :loading="loading"
+            :disabled="loading"
             class="ml-2"
             width="300"
             variant="outlined"
