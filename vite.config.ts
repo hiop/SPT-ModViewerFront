@@ -19,7 +19,6 @@ import pkg from './package.json';
 export default defineConfig(({ command, mode }): UserConfig => {
   const config: UserConfig = {
     // https://vitejs.dev/config/shared-options.html#base
-    //base: './',
     base: "/smv/", // Must match your BasePath
     server: {
       port: 5173,

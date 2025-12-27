@@ -5,8 +5,15 @@ export enum SptModState {
     UNDEFINED = 'UNDEFINED'
 }
 
+export enum SptModType {
+    CLIENT = 'CLIENT',
+    SERVER = 'SERVER',
+}
+
 export interface SptModFilter {
+    availableMods: SptModType[],
     modState?: SptModState;
+    needThumbnail?: boolean;
     activeProfile?: string;
     search?: string;
 }

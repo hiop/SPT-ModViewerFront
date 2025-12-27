@@ -3,7 +3,7 @@
 
 import type {
   ApiResponse,
-  ForgeModUpdate, HideClientMod, SPTForgeMod, SptModResponse,
+  ForgeModUpdate, HideClientMod, HideServerMod, SPTForgeMod, SptModResponse,
 } from './api-types';
 
 /**
@@ -68,6 +68,21 @@ export async function postServerMod(): Promise<ApiResponse<{success: boolean}>> 
  */
 export async function hideProfileMod(request: HideClientMod): Promise<ApiResponse<{success: boolean}>> {
   const response = await fetch('/smv/api/mod/profile/hide', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  return response.json();
+}
+/**
+ * Hide server mod
+ * POST /smv/api/mod/server/hide
+ */
+export async function hideServerMod(request: HideServerMod): Promise<ApiResponse<{success: boolean}>> {
+  const response = await fetch('/smv/api/mod/server/hide', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),

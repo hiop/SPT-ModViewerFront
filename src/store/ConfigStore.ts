@@ -6,7 +6,7 @@ export default defineStore(
   'config',
   () => {
     /** Dark Theme mode */
-    const theme: Ref<boolean> = ref(window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const theme: Ref<boolean> = ref(true);
 
     const locale: Ref<string> = ref(window.navigator.languages[0] ?? window.navigator.language);
 
@@ -24,7 +24,7 @@ export default defineStore(
   {
     // Data persistence destination
     persist: {
-      key: import.meta.env.VITE_APP_WEBSTORAGE_NAMESPACE ?? 'vuetify',
+      key: 'vuetify_config',
       storage: window.sessionStorage
     }
   }

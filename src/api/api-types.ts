@@ -42,6 +42,7 @@ export interface SPTServerMod {
   author?: string;
   modVersion?: string;
   sptVersion?: string;
+  visible?: boolean;
 }
 
 export interface SptModResponse {
@@ -53,4 +54,8 @@ export interface SptModResponse {
 export interface HideClientMod {
   clientName?: string | unknown;
   guid?: string | unknown;
+}
+
+export interface HideServerMod {
+  guid?: string;
 }

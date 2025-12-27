@@ -17,7 +17,24 @@ export default defineStore('spt-mod', () => {
             mods.value = response?.data;
         }
 
-        //const updateForgeMod = async (forgeData?: SPTForgeMod) =>{
+        const hideClientMod = (clientName?: string, clientMod?: SPTClientMod) => {
+            if(!clientName || !clientMod) return;
+
+            const clientMods = mods.value!.sptClientMods![clientName] as SPTClientMod[];
+            const mod = clientMods?.find(m => m?.guid === clientMod?.guid);
+
+            if(mod?.guid){
+                mod!.visible = false;
+            }
+        }
+
+        const hideServerMod = (serverMod?: SPTServerMod) => {
+            const mod = mods.value?.sptServerMods?.find(m => m.guid === serverMod?.guid);
+
+            if(mod?.guid){
+                mod!.visible = false;
+            }
+        }
         const updateForgeMod = async (mod?: SPTServerMod | SPTClientMod) =>{
             if(!mod) return
 
@@ -37,9 +54,8 @@ export default defineStore('spt-mod', () => {
                         }
                     }
                 })
-
         }
 
-        return {mods,getMods, setMods, updateForgeMod}
+        return {mods,getMods, setMods, updateForgeMod, hideServerMod, hideClientMod}
     }
 );

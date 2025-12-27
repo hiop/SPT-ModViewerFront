@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type {HideClientMod, SPTClientMod, SPTForgeMod, SPTServerMod} from "@/api/api-types.ts";
 import {computed, ref} from "vue";
-import {useGlobalStore, useSptFilterStore, useSptModStore} from "@/store";
-import {SptModState} from "@/types/spt-types.ts";
+import { useSptFilterStore, useSptModStore} from "@/store";
 import defaultBg from "@/assets/default_bg.svg";
-import {hideProfileMod} from "@/api/api-client.ts";
+import {hideProfileMod, hideServerMod} from "@/api/api-client.ts";
+import {SptModState} from "@/types/spt-types.ts";
 
 interface Props {
   clientMod?: SPTClientMod
@@ -12,18 +12,21 @@ interface Props {
   forgeMods?: SPTForgeMod[]
 }
 
-const globalStore = useGlobalStore();
 const sptFilterStore = useSptFilterStore();
 const sptModStore = useSptModStore();
 
+const loading = ref(false);
 const props = defineProps<Props>();
 const clientMod = props.clientMod;
 const serverMod = props.serverMod;
+
+const filter = computed(() =>{
+  return sptFilterStore.getModFilter();
+})
+
 const forgeMods = computed(() =>{
   return props.forgeMods;
 });
-
-const loading = ref(false);
 
 const modIs = computed((): 'SERVER' | 'CLIENT' => {
   return clientMod?.guid ? 'CLIENT' : 'SERVER'
@@ -40,7 +43,6 @@ const shortModName = computed(() => {
 
   return modName.value
 })
-
 
 const modVersion = computed(() => {
   return clientMod?.modVersion ?? serverMod?.modVersion
@@ -71,9 +73,27 @@ const updateMod = () => {
 const hideMod = () =>{
   loading.value = true;
 
-  hideProfileMod({clientName: sptFilterStore?.getModFilter()?.activeProfile, guid: modGuid.value} as HideClientMod).finally(() =>{
-    loading.value = false;
-  })
+  if(clientMod?.guid){
+    hideProfileMod({clientName: filter.value.activeProfile, guid: modGuid.value} as HideClientMod)
+        .then((data) =>{
+          if(!data.success) return;
+          sptModStore.hideClientMod(filter.value?.activeProfile, clientMod);
+        })
+        .finally(() =>{
+      loading.value = false;
+    })
+  }else{
+    hideServerMod({guid: serverMod!.guid})
+        .then((data) =>{
+          if(!data.success) return;
+
+          sptModStore.hideServerMod(serverMod)
+        })
+        .finally(() =>{
+      loading.value = false;
+    })
+  }
+
 }
 
 const modStateColor = computed(() => {
@@ -85,31 +105,17 @@ const modStateColor = computed(() => {
   return 'grey';
 });
 
-// const passByFilter = computed(() => {
-//   switch (sptFilterStore.modFilter.modState) {
-//     case SptModState.OUTDATED:
-//       return modStateColor.value === 'red';
-//     case SptModState.UNDEFINED:
-//       return modStateColor.value === 'grey';
-//     case SptModState.UPDATED:
-//       return modStateColor.value === 'green';
-//     case SptModState.ANY:
-//     default:
-//       return true;
-//   }
-// });
-
 </script>
 
 <template>
   <div>
     <v-card
         :loading="loading"
-        class="ma-1"
+        class="mr-2 mb-2"
         variant="outlined"
         :style="{'border': 'solid','border-color': modStateColor}"
     >
-      <div>
+      <div v-if="filter.needThumbnail">
         <v-img
             height="300px"
             :src="forgeMod?.thumbnail ? forgeMod.thumbnail : defaultBg"
@@ -140,16 +146,16 @@ const modStateColor = computed(() => {
                 <v-list>
                   <v-list-item value="sync">
                     <template #prepend>
-                      <v-icon icon="mdi-update"/>
+                      <v-icon color="success" icon="mdi-update"/>
                     </template>
-                    <v-list-item-title @click="updateMod()">Sync information from Forge API</v-list-item-title>
+                    <v-list-item-title @click="updateMod()">Sync data from Forge API</v-list-item-title>
                   </v-list-item>
 
                   <v-list-item value="hide">
+                    <template #prepend>
+                      <v-icon color="warning"  icon="mdi-eye-remove"/>
+                    </template>
                     <v-list-item-title>
-                      <template #prepend>
-                        <v-icon icon="mdi-hide"/>
-                      </template>
                       <v-list-item-title @click="hideMod()">Hide</v-list-item-title>
                     </v-list-item-title>
                   </v-list-item>
@@ -170,6 +176,9 @@ const modStateColor = computed(() => {
 <!--          SPT {{ forgeModLastVersion?.spt_version_constraint }}-->
 <!--        </v-chip>-->
         <v-chip :color="modStateColor" variant="flat" density="compact">{{ modIs }}</v-chip>
+        <v-chip v-if="filter?.modState === SptModState.OUTDATED" color="green" variant="flat" density="compact">
+          {{forgeModLastVersion?.version}}
+        </v-chip>
       </v-card-actions>
     </v-card>
   </div>

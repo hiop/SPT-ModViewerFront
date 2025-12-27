@@ -1,18 +1,24 @@
 <script setup lang="ts">
 
 import {computed, onMounted, ref} from "vue";
-import {getSptMods, postActiveProfile} from "@/api/api-client.ts";
+import {getSptMods, postActiveProfile, postServerMod} from "@/api/api-client.ts";
 import type {SPTClientMod, SPTServerMod} from "@/api/api-types.ts";
 import SptMod from "@/components/SptMod.vue";
 import {useGlobalStore, useSptFilterStore, useSptModStore} from "@/store";
-import {SptModState} from "@/types/spt-types.ts";
+import {SptModState, SptModType} from "@/types/spt-types.ts";
 import {getModState, sleep} from "@/script/Utils.ts";
 
 const loading = ref(false);
 const globalStore = useGlobalStore();
+const filterStore = useSptFilterStore();
 const modStore = useSptModStore();
-const modFilter = computed(() => {
-  return useSptFilterStore().getModFilter();
+const modFilter = computed({
+  get() {
+    return filterStore.getModFilter();
+  },
+  set(filter) {
+    return filterStore.setModFilter(filter);
+  }
 });
 
 const mods = computed(() => {
@@ -26,6 +32,7 @@ const clientMods = computed((): SPTClientMod[] => {
   const _search = modFilter?.value.search ?? '';
 
   return _mods
+      .filter((m: SPTClientMod) => modFilter.value.availableMods.includes(SptModType.CLIENT))
       .filter((m: SPTClientMod) => m.visible !== false)
       .filter((m: SPTClientMod) => JSON.stringify(m).toLowerCase().includes(_search.toLowerCase()))
       .filter((m: SPTClientMod) => {
@@ -38,11 +45,16 @@ const clientMods = computed((): SPTClientMod[] => {
 })
 
 onMounted(async () => {
+  try {
+    await postActiveProfile();
+    await postServerMod();
+  }catch(e){
+    globalStore.setMessage(e?.message)
+  }
+
   await getSptMods().then((response) => {
     modStore.setMods(response);
   })
-
-  await postActiveProfile();
 })
 
 const serverMods = computed(() => {
@@ -50,6 +62,8 @@ const serverMods = computed(() => {
   const _search = modFilter?.value.search ?? '';
 
   return _mods
+      .filter((m: SPTServerMod) => modFilter.value.availableMods.includes(SptModType.SERVER))
+      .filter((m: SPTServerMod) => m.visible !== false)
       .filter((m: SPTServerMod) => JSON.stringify(m).toLowerCase().includes(_search.toLowerCase()))
       .filter((m: SPTServerMod) => {
         const forgeMode = mods.value!.sptForgeMods!.find(f => f.guid === m.guid);
@@ -97,15 +111,30 @@ const SyncAllModsByFilter = async () => {
 
 <template>
   <div class="h-100">
-    <div class="d-flex">
+    <div class="d-flex align-center">
       <div>
         <v-select
-            v-model="modFilter.activeProfile"
-            :items="Object.keys(mods?.sptClientMods ?? {})"
+            v-model="modFilter.availableMods"
+            :items="Object.values(SptModType)"
             width="300"
-            label="Profile"
+            label="Mod types"
             variant="outlined"
             density="compact"
+            hide-details="auto"
+            multiple
+        />
+      </div>
+      <div>
+        <v-select
+            v-if="modFilter.availableMods.includes(SptModType.CLIENT)"
+            v-model="modFilter.activeProfile"
+            class="ml-2"
+            :items="Object.keys(mods?.sptClientMods ?? {})"
+            width="300"
+            label="Player profile"
+            variant="outlined"
+            density="compact"
+            hide-details="auto"
             clearable
         />
       </div>
@@ -117,6 +146,7 @@ const SyncAllModsByFilter = async () => {
             width="300"
             variant="outlined"
             density="compact"
+            hide-details="auto"
             label="Mod state"
         />
       </div>
@@ -129,19 +159,33 @@ const SyncAllModsByFilter = async () => {
             variant="outlined"
             density="compact"
             label="Search"
+            hide-details="auto"
             clearable
         />
       </div>
       <div>
+        <v-checkbox
+            v-model="modFilter.needThumbnail"
+            height="40"
+            color="success"
+            label="Thumbnail"
+            hide-details="auto"
+        />
+      </div>
+      <div>
         <v-btn
+            v-tooltip:bottom="`Updates data for mods (via forge api) selected using the filter settings. The number of mods that will be processed is indicated in brackets.
+            !!!THIS IS NOT MOD UPDATER!!!
+            `"
             :loading="loading"
-            class="ml-2"
+            class="ml-4"
             height="40"
             color="success"
             variant="flat"
-            @click="SyncAllModsByFilter">SYNC DATA ({{ modsInFilter }})
+            @click="SyncAllModsByFilter">SYNC MOD DATA ({{ modsInFilter }})
         </v-btn>
       </div>
+
     </div>
 
     <div class="h-100 d-flex flex-wrap">
