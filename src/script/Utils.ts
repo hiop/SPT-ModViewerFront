@@ -1,6 +1,5 @@
 import type {SPTClientMod, SPTForgeModVersion, SPTServerMod} from "@/api/api-types.ts";
 import {SptModState} from "@/types/spt-types.ts";
-
 /**
  * Get current state by mod data
  * @param mod client/server mod data
@@ -10,6 +9,10 @@ export const getModState = (mod: SPTServerMod | SPTClientMod, lastVersionFromFor
     if (lastVersionFromForge?.version) {
         const forceVersion = mod?.forceModVersion?.forceVersion;
         const forceForVersion = mod?.forceModVersion?.modVersion;
+
+        if(mod?.uninstalled === true){
+            return SptModState.UNINSTALLED;
+        }
 
         if(forceVersion === lastVersionFromForge?.version && forceForVersion === mod.modVersion){
             return SptModState.UPDATED;
@@ -21,6 +24,17 @@ export const getModState = (mod: SPTServerMod | SPTClientMod, lastVersionFromFor
     }
 
     return SptModState.UNDEFINED;
+};
+
+export const getModStateColor = (modState: SptModState) => {
+    switch (modState) {
+        case SptModState.UPDATED:
+            return 'green';
+        case SptModState.OUTDATED:
+            return 'red';
+        default:
+            return 'grey';
+    }
 };
 
 export const sleep = (ms: number) => {

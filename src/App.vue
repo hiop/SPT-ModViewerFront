@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useGlobalStore, useConfigStore } from '@/store';
+import {useGlobalStore, useConfigStore, useSptModStore} from '@/store';
 import {
   computed,
   nextTick,
@@ -51,6 +51,8 @@ const snackbarText: ComputedRef<string> = computed(() => globalStore.message);
 /** Toggle Dark mode */
 const isDark: ComputedRef<string> = computed(() => (configStore.theme ? 'dark' : 'light'));
 
+const modStore = useSptModStore();
+
 // When snackbar text has been set, show snackbar.
 watch(
   () => globalStore.message,
@@ -76,7 +78,7 @@ onMounted(() => {
 
     <v-app-bar>
 <!--      <v-app-bar-nav-icon @click="drawer = !drawer" />-->
-      <v-app-bar-title tag="h1">{{ title }}</v-app-bar-title>
+      <v-app-bar-title tag="h1">{{ title }} <v-chip v-if="modStore.sptServerVersion">SPT {{modStore.sptServerVersion}}</v-chip></v-app-bar-title>
       <v-spacer />
       <app-bar-menu-component />
       <v-progress-linear

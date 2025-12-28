@@ -3,7 +3,7 @@
 
 import type {
   ApiResponse, ForceModGuidRequest, ForceModVersionRequest,
-  ForgeModUpdate, HideClientMod, HideServerMod, SPTForgeMod, SptModResponse,
+  ForgeModUpdate, HideClientMod, HideServerMod, ServerDataResponse, SPTForgeMod, SptModResponse,
 } from './api-types';
 
 /**
@@ -120,6 +120,18 @@ export async function setModGuidWithForce(request: ForceModGuidRequest): Promise
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
   });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * Get common server data
+ * GET /smv/api/server
+ */
+export async function getServerData(): Promise<ApiResponse<ServerDataResponse>> {
+  const response = await fetch('/smv/api/server');
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }

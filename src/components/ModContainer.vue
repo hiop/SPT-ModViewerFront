@@ -1,12 +1,12 @@
 <script setup lang="ts">
 
 import {computed, onMounted, ref} from "vue";
-import {getSptMods, postActiveProfile, postServerMod} from "@/api/api-client.ts";
+import {getServerData, getSptMods, postActiveProfile, postServerMod} from "@/api/api-client.ts";
 import type {SPTClientMod, SPTServerMod} from "@/api/api-types.ts";
 import SptMod from "@/components/SptMod.vue";
 import {useGlobalStore, useSptFilterStore, useSptModStore} from "@/store";
 import {SptModState} from "@/types/spt-types.ts";
-import {getKeyByValue, getModState, sleep} from "@/script/Utils.ts";
+import {getKeyByValue, getModState, getModStateColor, sleep} from "@/script/Utils.ts";
 import {ModType} from "@/api/api-types.ts";
 
 const loading = ref(false);
@@ -23,7 +23,7 @@ const modFilter = computed({
 });
 
 const mods = computed(() => {
-  return modStore.getMods();
+  return modStore.getMods()
 })
 
 const clientMods = computed((): SPTClientMod[] => {
@@ -56,12 +56,18 @@ const getAllMods = async() => {
 }
 
 onMounted(async () => {
+  filterStore.fixModType020();
+
   try {
     await postActiveProfile();
     await postServerMod();
   }catch(e){
     globalStore.setMessage(e?.message)
   }
+
+  getServerData().then((data) =>{
+    modStore.sptServerVersion = data!.data!.sptServerVersion as string;
+  })
 
   await getAllMods();
 })
@@ -167,7 +173,21 @@ const SyncAllModsByFilter = async () => {
             density="compact"
             hide-details="auto"
             label="Mod state"
-        />
+        >
+          <template #item="{item, props}">
+            <v-list-item v-bind="props">
+              <template #title>
+                <div class="d-flex justify-space-between align-center">
+                  <div>{{item.value}}</div>
+                  <div v-if="item.value != 'ANY'" style="border-bottom: 5px" :style="{
+                    'border': item.value === SptModState.UNINSTALLED ? 'dashed' : 'solid', 'border-color': getModStateColor(item.value)}">
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                  </div>
+                </div>
+              </template>
+            </v-list-item>
+          </template>
+        </v-select>
       </div>
 
       <div>
@@ -201,7 +221,7 @@ const SyncAllModsByFilter = async () => {
             height="40"
             color="success"
             variant="flat"
-            @click="SyncAllModsByFilter">SYNC MOD DATA ({{ modsInFilter }})
+            @click="SyncAllModsByFilter">SYNC FROM FORGE ({{ modsInFilter }})
         </v-btn>
       </div>
 

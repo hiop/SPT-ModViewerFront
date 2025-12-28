@@ -6,7 +6,7 @@ import {useSptFilterStore, useSptModStore} from "@/store";
 import defaultBg from "@/assets/default_bg.svg";
 import {hideProfileMod, hideServerMod} from "@/api/api-client.ts";
 import {SptModState} from "@/types/spt-types.ts";
-import {getKeyByValue, getModState} from "@/script/Utils.ts";
+import {getKeyByValue, getModState, getModStateColor} from "@/script/Utils.ts";
 
 interface Props {
   clientMod?: SPTClientMod
@@ -14,8 +14,8 @@ interface Props {
   forgeMods?: SPTForgeMod[]
 }
 
-const sptFilterStore = useSptFilterStore();
-const sptModStore = useSptModStore();
+const filterStore = useSptFilterStore();
+const modStore = useSptModStore();
 const emits = defineEmits(['modChanged']);
 
 const loading = ref(false);
@@ -26,7 +26,7 @@ const editGuidDialog = ref(false);
 const forceGuidValue = ref('');
 
 const filter = computed(() =>{
-  return sptFilterStore.getModFilter();
+  return filterStore.getModFilter();
 })
 
 const forgeMods = computed(() =>{
@@ -81,7 +81,7 @@ const forgeModLastVersion = computed(() => {
 const updateMod = () => {
   loading.value = true;
 
-  sptModStore.updateForgeMod(clientMod ?? serverMod)
+  modStore.updateForgeMod(clientMod ?? serverMod)
       .finally(() => {
         loading.value = false;
   });
@@ -90,7 +90,7 @@ const updateMod = () => {
 const setModGuid = () => {
   loading.value = true;
 
-  sptModStore.setModGuid(
+  modStore.setModGuid(
       isModType.value,
       isModType.value === ModType.CLIENT ? clientMod : serverMod,
       forceGuidValue.value
@@ -107,7 +107,7 @@ const setModGuid = () => {
 const setUseLastModVersion = () => {
   loading.value = true;
 
-  sptModStore.useLastModVersion(
+  modStore.useLastModVersion(
       isModType.value,
       forgeModLastVersion.value,
       isModType.value === ModType.CLIENT ? clientMod : serverMod
@@ -127,7 +127,7 @@ const hideMod = () =>{
     hideProfileMod({clientName: filter.value.activeProfile, guid: modGuid.value} as HideClientMod)
         .then((data) =>{
           if(!data.success) return;
-          sptModStore.hideClientMod(filter.value?.activeProfile, clientMod);
+          modStore.hideClientMod(filter.value?.activeProfile, clientMod);
         })
         .finally(() =>{
       loading.value = false;
@@ -137,7 +137,7 @@ const hideMod = () =>{
         .then((data) =>{
           if(!data.success) return;
 
-          sptModStore.hideServerMod(serverMod)
+          modStore.hideServerMod(serverMod)
         })
         .finally(() =>{
       loading.value = false;
@@ -151,15 +151,7 @@ const modState = computed(() => {
 });
 
 const modStateColor = computed(() => {
-  switch (modState.value) {
-    case SptModState.UPDATED:
-      return 'green';
-    case SptModState.OUTDATED:
-      return 'red';
-    case SptModState.UNDEFINED:
-    default:
-      return 'grey';
-  }
+  return getModStateColor(modState.value);
 });
 
 </script>
@@ -170,7 +162,10 @@ const modStateColor = computed(() => {
         :loading="loading"
         class="mr-2 mb-2"
         variant="outlined"
-        :style="{'border': 'solid','border-color': modStateColor}"
+        :style="{
+          'border': modState === SptModState.UNINSTALLED ? 'dashed' : 'solid',
+          'border-color': modStateColor
+        }"
     >
       <div v-if="filter.needThumbnail">
         <v-img

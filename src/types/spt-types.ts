@@ -4,7 +4,8 @@ export enum SptModState {
     ANY = 'ANY',
     UPDATED = 'UPDATED',
     OUTDATED = 'OUTDATED',
-    UNDEFINED = 'UNDEFINED'
+    UNDEFINED = 'UNDEFINED',
+    UNINSTALLED = 'UNINSTALLED'
 }
 
 export interface SptModFilter {

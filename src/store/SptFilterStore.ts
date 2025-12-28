@@ -10,9 +10,18 @@ export default defineStore(
     () => {
         const sptVersion = ref('4.0.9');
         const modFilter = ref<SptModFilter>({
-            availableMods: [ModType.CLIENT, ModType.SERVER],
+            availableMods: Object.keys(ModType),
             modState: SptModState.ANY
         });
+
+        /**
+         * Fix [0,1, "CLIENT", "SERVER"] filter available
+         */
+        const fixModTypeFrom020 = () => {
+            modFilter.value.availableMods = modFilter.value.availableMods
+                .filter( (mt: number | keyof ModType) => mt !== 0 && mt !== 1)
+                .map((mt: unknown) => mt as keyof ModType);
+        }
 
         const getModFilter = () => {
             return modFilter.value;
@@ -22,7 +31,7 @@ export default defineStore(
         }
 
 
-        return {sptVersion, modFilter, getModFilter, setModFilter}
+        return {sptVersion, modFilter, getModFilter, setModFilter, fixModType020: fixModTypeFrom020}
     },
     {
       // Data persistence destination

@@ -14,6 +14,7 @@ export interface SPTClientMod {
   modVersion?: string;
   forceModVersion?: ForceModVersion;
   visible?: boolean;
+  uninstalled?: boolean;
 }
 
 export interface SPTForgeMod {
@@ -47,6 +48,7 @@ export interface SPTServerMod {
   forceModVersion?: ForceModVersion;
   sptVersion?: string;
   visible?: boolean;
+  uninstalled?: boolean;
 }
 
 export interface SptModResponse {
@@ -88,4 +90,8 @@ export interface ForceModGuidRequest {
   clientName?: string;
   guid?: string;
   forceGuid?: string;
+}
+
+export interface ServerDataResponse {
+  sptServerVersion?: string;
 }
