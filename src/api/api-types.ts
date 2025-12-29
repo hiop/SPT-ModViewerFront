@@ -24,6 +24,7 @@ export interface SPTForgeMod {
   teaser?: string;
   thumbnail?: string;
   detail_url?: string;
+  sptVersionLastId?: number;
   sptVersions?: SPTForgeModVersion[];
 }
 
@@ -94,4 +95,10 @@ export interface ForceModGuidRequest {
 
 export interface ServerDataResponse {
   sptServerVersion?: string;
+}
+
+export interface RemoveModRequest {
+  modType: ModType;
+  clientName?: string;
+  guid: string;
 }

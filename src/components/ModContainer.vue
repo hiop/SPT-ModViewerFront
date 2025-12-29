@@ -44,7 +44,10 @@ const clientMods = computed((): SPTClientMod[] => {
 
         if (modFilter.value?.modState === SptModState.ANY) return true;
 
-        const lastVersion = forgeMode?.sptVersions[forgeMode.sptVersions?.length - 1];
+        const lastVersion =
+            forgeMode?.sptVersions?.find(v => v.id === forgeMode?.sptVersionLastId) ||
+            forgeMode?.sptVersions[forgeMode?.sptVersions.length - 1]
+
         return modFilter?.value.modState === getModState(m, lastVersion);
       })
 })
@@ -88,7 +91,9 @@ const serverMods = computed(() => {
 
         if (modFilter.value?.modState === SptModState.ANY) return true;
 
-        const lastVersion = forgeMode?.sptVersions[forgeMode.sptVersions?.length - 1];
+        const lastVersion = forgeMode?.sptVersions?.find(v => v.id === forgeMode?.sptVersionLastId) ||
+            forgeMode?.sptVersions[forgeMode?.sptVersions.length - 1]
+
         return modFilter?.value.modState === getModState(m, lastVersion);
       })
 })

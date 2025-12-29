@@ -1,7 +1,7 @@
 {
   "name": "vite-vuetify-ts-starter",
   "description": "Vue3 Vuetify TypeScript Startar project for Vite.",
-  "version": "1.17.3",
+  "version": "0.3.0",
   "license": "MIT",
   "type": "module",
   "private": true,

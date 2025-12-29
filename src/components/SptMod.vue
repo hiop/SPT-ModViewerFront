@@ -1,10 +1,17 @@
 <script setup lang="ts">
-import type {HideClientMod, SPTClientMod, SPTForgeMod, SptModType, SPTServerMod} from "@/api/api-types.ts";
+import type {
+  HideClientMod,
+  RemoveModRequest,
+  SPTClientMod,
+  SPTForgeMod,
+  SptModType,
+  SPTServerMod
+} from "@/api/api-types.ts";
 import {ModType} from "@/api/api-types.ts";
 import {computed, ref} from "vue";
 import {useSptFilterStore, useSptModStore} from "@/store";
 import defaultBg from "@/assets/default_bg.svg";
-import {hideProfileMod, hideServerMod} from "@/api/api-client.ts";
+import {deleteSptMod, hideProfileMod, hideServerMod} from "@/api/api-client.ts";
 import {SptModState} from "@/types/spt-types.ts";
 import {getKeyByValue, getModState, getModStateColor} from "@/script/Utils.ts";
 
@@ -69,13 +76,20 @@ const modGuid = computed(() => {
   return mod?.forceGuid ?? mod?.guid ?? null;
 })
 
-const forgeMod = computed(() => {
+const forgeMode = computed(() => {
   return forgeMods.value?.find(f => f.guid === modGuid.value)
 })
 
 const forgeModLastVersion = computed(() => {
-  if (!forgeMod.value?.sptVersions) return null;
-  return forgeMod.value.sptVersions[forgeMod.value.sptVersions?.length - 1];
+  if (!forgeMode.value?.sptVersions) return null;
+
+  const lastVersion = forgeMode.value.sptVersions.find(v => v.id === forgeMode.value?.sptVersionLastId);
+
+  if (lastVersion) {
+    return lastVersion
+  } else {
+    return forgeMode.value!.sptVersions[forgeMode.value!.sptVersions.length - 1];
+  }
 })
 
 const updateMod = () => {
@@ -113,6 +127,24 @@ const setUseLastModVersion = () => {
       isModType.value === ModType.CLIENT ? clientMod : serverMod
   )
       .then(() => {
+        emits('modChanged');
+      })
+      .finally(() => {
+        loading.value = false;
+      })
+}
+
+const removeMod = async () => {
+  const mod = clientMod ?? serverMod;
+  loading.value = true;
+  deleteSptMod(
+      {
+        modType: isModType.value,
+        clientName: filter.value?.activeProfile,
+        guid: mod?.guid
+      } as RemoveModRequest
+  )
+      .then(async() => {
         emits('modChanged');
       })
       .finally(() => {
@@ -170,15 +202,15 @@ const modStateColor = computed(() => {
       <div v-if="filter.needThumbnail">
         <v-img
             height="300px"
-            :src="forgeMod?.thumbnail ? forgeMod.thumbnail : defaultBg"
+            :src="forgeMode?.thumbnail ? forgeMode.thumbnail : defaultBg"
         ></v-img>
       </div>
 
       <v-card-title>
         <div class="d-flex justify-space-between">
           <div class="d-flex align-center" v-tooltip="`${modName} ${modVersion}`">
-            <template v-if="forgeMod && forgeMod.detail_url">
-              <a target="_blank" :href="forgeMod.detail_url">{{ shortModName }} {{ modVersion }}</a>
+            <template v-if="forgeMode && forgeMode.detail_url">
+              <a target="_blank" :href="forgeMode.detail_url">{{ shortModName }} {{ modVersion }}</a>
             </template>
             <template v-else>
               {{ shortModName }} {{ modVersion }}
@@ -233,10 +265,28 @@ const modStateColor = computed(() => {
                       value="use-last"
                       @click="setUseLastModVersion()">
                     <template #prepend>
-                      <v-icon color="warning"  icon="mdi-equal"/>
+                      <v-icon color="warning"  icon="mdi-code-equal"/>
                     </template>
                     <v-list-item-title>
                       <v-list-item-title>I have {{forgeModLastVersion?.version}} version!</v-list-item-title>
+                    </v-list-item-title>
+                  </v-list-item>
+
+                  <v-divider
+                      v-if="modState === SptModState.UNINSTALLED"
+                      class="mt-2 mb-2"
+                  />
+
+                  <v-list-item
+                      v-if="modState === SptModState.UNINSTALLED"
+                      class="mt-2"
+                      value="remove"
+                      @click="removeMod()">
+                    <template #prepend>
+                      <v-icon color="error" icon="mdi-delete"/>
+                    </template>
+                    <v-list-item-title>
+                      <v-list-item-title>Remove</v-list-item-title>
                     </v-list-item-title>
                   </v-list-item>
 
@@ -279,7 +329,7 @@ const modStateColor = computed(() => {
       </v-card-title>
 
       <v-card-subtitle>
-        {{ forgeMod?.teaser ?? modGuid }}
+        {{ forgeMode?.teaser ?? modGuid }}
       </v-card-subtitle>
 
       <v-card-actions>

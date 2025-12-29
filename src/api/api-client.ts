@@ -3,7 +3,7 @@
 
 import type {
   ApiResponse, ForceModGuidRequest, ForceModVersionRequest,
-  ForgeModUpdate, HideClientMod, HideServerMod, ServerDataResponse, SPTForgeMod, SptModResponse,
+  ForgeModUpdate, HideClientMod, HideServerMod, RemoveModRequest, ServerDataResponse, SPTForgeMod, SptModResponse,
 } from './api-types';
 
 /**
@@ -132,6 +132,22 @@ export async function setModGuidWithForce(request: ForceModGuidRequest): Promise
  */
 export async function getServerData(): Promise<ApiResponse<ServerDataResponse>> {
   const response = await fetch('/smv/api/server');
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * delete mod if possible
+ * POST /smv/api/mod/remove
+ */
+export async function deleteSptMod(request: RemoveModRequest): Promise<ApiResponse<{success: boolean}>> {
+  const response = await fetch('/smv/api/mod/remove', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+  });
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }

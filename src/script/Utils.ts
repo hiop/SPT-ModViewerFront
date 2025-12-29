@@ -6,13 +6,13 @@ import {SptModState} from "@/types/spt-types.ts";
  * @param lastVersionFromForge last verion of mod from Forge-API
  */
 export const getModState = (mod: SPTServerMod | SPTClientMod, lastVersionFromForge?: SPTForgeModVersion): SptModState => {
+    if(mod?.uninstalled === true){
+        return SptModState.UNINSTALLED;
+    }
+
     if (lastVersionFromForge?.version) {
         const forceVersion = mod?.forceModVersion?.forceVersion;
         const forceForVersion = mod?.forceModVersion?.modVersion;
-
-        if(mod?.uninstalled === true){
-            return SptModState.UNINSTALLED;
-        }
 
         if(forceVersion === lastVersionFromForge?.version && forceForVersion === mod.modVersion){
             return SptModState.UPDATED;

@@ -28,17 +28,30 @@ export default defineStore('spt-mod', () => {
         }
 
         const setMods = (response: ApiResponse<SptModResponse>) => {
-            mods.value = response?.data
+            mods.value = response?.data;
+
+            let serverMods = mods.value?.sptServerMods ?? [];
+            serverMods.sort(sortMod);
+
+            let clientMods = mods.value?.sptClientMods ?? {};
+            Object.values(clientMods).forEach(mods => mods.sort(sortMod))
         }
 
-        const findLastForgeVersion = (mod?: SPTServerMod | SPTClientMod) =>{
+        const sortMod = (a: SPTServerMod | SPTClientMod, b: SPTServerMod | SPTClientMod, ) =>{
+            const nameA = a?.name?.toLowerCase() ?? 'a';
+            const nameB = b?.name?.toLowerCase() ?? 'b';
+
+            return nameA > nameB ? 1 : -1;
+        }
+
+        const findLastForgeVersion = (mod?: SPTServerMod | SPTClientMod) => {
             const modGuid = mod?.forceGuid ?? mod!.guid;
 
             const forgeMod = mods.value?.sptForgeMods?.find(fm => fm.guid === modGuid);
 
             let lastVersion = undefined;
             for (const version of forgeMod?.sptVersions?.reverse() ?? []) {
-                if(checkVersion(version?.spt_version_constraint as '0.0.0', sptServerVersion.value)){
+                if (checkVersion(version?.spt_version_constraint as '0.0.0', sptServerVersion.value)) {
                     lastVersion = version;
                     break;
                 }
